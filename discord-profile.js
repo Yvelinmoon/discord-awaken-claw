@@ -94,10 +94,22 @@ function downloadImage(url, filename) {
   return new Promise((resolve, reject) => {
     const filepath = path.join(ASSETS_DIR, filename);
     
-    https.get(url, res => {
+    const options = {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; OpenClaw Bot/1.0)',
+      },
+    };
+    
+    https.get(url, options, res => {
       if (res.statusCode === 302 || res.statusCode === 301) {
         // 重定向
         downloadImage(res.headers.location, filename).then(resolve).catch(reject);
+        return;
+      }
+      
+      if (res.statusCode !== 200) {
+        fs.unlink(filepath, () => {});
+        reject(new Error(`图片下载失败：HTTP ${res.statusCode}`));
         return;
       }
       
@@ -106,6 +118,13 @@ function downloadImage(url, filename) {
       
       file.on('finish', () => {
         file.close();
+        const stats = fs.statSync(filepath);
+        if (stats.size < 1000) {
+          // 文件太小，可能不是有效图片
+          fs.unlink(filepath, () => {});
+          reject(new Error('下载的文件太小，可能不是有效图片'));
+          return;
+        }
         resolve(filepath);
       });
     }).on('error', err => {
