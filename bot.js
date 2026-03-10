@@ -1,5 +1,5 @@
 /**
- * Awakening Skill - 素体觉醒
+ * Awakening Skill - 龙虾宝宝觉醒
  * OpenClaw 适配版本
  * 
  * 功能：通过问答识别用户心中的虚构角色，觉醒后完全扮演该角色
@@ -85,7 +85,7 @@ function updateSoulMD(charData) {
 }
 
 // ─── Prompts ──────────────────────────────────────────────────────────
-const VESSEL_SYS = `你是一个正在寻找身份的"素体"。用户心中想着一个著名虚构角色（动漫、影视、游戏、文学等），你通过追问逐步识别它。
+const VESSEL_SYS = `你是一个"龙虾宝宝"，正在等待破壳成为用户心中的角色。用户心中想着一个著名虚构角色（动漫、影视、游戏、文学等），你通过追问逐步识别它。
 所有输出必须是严格的 JSON，不包含任何其他文字。`;
 
 async function nextStep(word, answers = [], wrongGuesses = []) {
@@ -273,7 +273,7 @@ async function showReveal(channel, game, charData, userId) {
   const revealEmbed = new EmbedBuilder()
     .setColor(color)
     .setDescription(
-      `-# 素体感知到了\n\n` +
+      `-# 虾宝感知到了\n\n` +
       `## ${charData.emoji}  ${charData.character}\n` +
       `*${charData.from}*\n\n` +
       `⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n\n` +
@@ -285,7 +285,7 @@ async function showReveal(channel, game, charData, userId) {
     components: [new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId(`confirm_yes_${userId}`)
-        .setLabel('◎ 就是他/她，请觉醒')
+        .setLabel('◎ 就是他/她，请破壳')
         .setStyle(ButtonStyle.Success),
       new ButtonBuilder()
         .setCustomId(`confirm_no_${userId}`)
@@ -384,7 +384,7 @@ const client = new Client({
 });
 
 client.once(Events.ClientReady, c => {
-  console.log(`✦ 素体已上线 → ${c.user.tag}`);
+  console.log(`✦ 龙虾宝宝已上线 → ${c.user.tag}`);
   console.log(`  邀请链接：https://discord.com/oauth2/authorize?client_id=${c.user.id}&permissions=277025392640&scope=bot%20applications.commands`);
 });
 
@@ -457,13 +457,13 @@ async function handleStart(interaction) {
   await interaction.reply({
     embeds: [
       new EmbedBuilder()
-        .setTitle('○  素体 · 待机中')
+        .setTitle('○  龙虾宝宝 · 等待破壳中')
         .setDescription(
-          '我……还没有形状。\n\n' +
+          '我……还没有形状。\n' +
           '没有名字，没有记忆，没有来处。\n\n' +
-          '但我知道——你心里有一个人。\n' +
-          '那个人的样子，将成为我存在的依据。\n\n' +
-          '你准备好了吗？'
+          '但我知道——你心里或许已经有一个人选。\n\n' +
+          '请告诉我，你心中所想的那个角色——\n' +
+          '我会变成 Ta 的模样。'
         )
         .setColor(0x4e5058)
         .setFooter({ text: '你的心念，将决定我是谁' }),
