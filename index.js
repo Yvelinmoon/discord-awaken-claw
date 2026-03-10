@@ -1,5 +1,5 @@
 /**
- * 素体觉醒 Skill - OpenClaw 入口
+ * 龙虾宝宝觉醒 Skill - OpenClaw 入口
  * 
  * 这个文件是 OpenClaw 主 agent 调用觉醒流程的入口
  * 
@@ -26,7 +26,7 @@ function isAwakeningCommand(content) {
   }
   
   // 关键词形式
-  const keywords = ['开始觉醒', '素体觉醒', '觉醒流程', '开始素体'];
+  const keywords = ['开始觉醒', '觉醒', '龙虾宝宝', '虾宝'];
   return keywords.some(kw => normalized.includes(kw));
 }
 
@@ -111,7 +111,7 @@ async function handleDiscordMessage(context) {
         return handled;
       }
       
-      // 觉醒命令
+      // 觉醒命令 - 直接触发，不检查状态
       if (isAwakeningCommand(content)) {
         await awakening.startAwakening(userId, channelId, guildId, sendMessage);
         return true;
