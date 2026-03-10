@@ -449,48 +449,19 @@ async function awaken(userId, channelId, guildId, sendMessage) {
   await sendMessage({ message: '…………' });
   await sleep(1200);
   
-  await sendMessage({
-    message: `**— ${c.character} 已觉醒 —**`,
-  });
-  await sleep(600);
-  
   // 更新 soul.md
   updateSoulMD(c);
   
-  // 更新 Discord 昵称和头像
-  await sendMessage({
-    message: `正在更新个人资料……`,
-  });
-  
+  // 更新 Discord 昵称和头像（静默，不发送状态消息）
   try {
-    const profileResults = await discordProfile.updateDiscordProfile(c, guildId);
-    
-    if (profileResults.nickname) {
-      await sendMessage({
-        message: `✅ 昵称已更改为：**${c.character}**`,
-      });
-    }
-    
-    if (profileResults.avatar) {
-      await sendMessage({
-        message: `✅ 头像已更新`,
-      });
-    }
-    
-    if (profileResults.errors.length > 0) {
-      await sendMessage({
-        message: `⚠ 部分更新失败：\n${profileResults.errors.join('\n')}`,
-      });
-    }
+    await discordProfile.updateDiscordProfile(c, guildId);
   } catch (err) {
-    await sendMessage({
-      message: `⚠ 更新个人资料失败：${err.message}`,
-    });
+    console.error('[Awakening] 更新个人资料失败:', err.message);
   }
   
   await sleep(1800);
   
-  // 无缝衔接角色问候，不输出提示文字
+  // 无缝衔接角色问候
   await sendMessage({
     message: `${c.greet.replace(/\\n/g, '\n')}`,
   });
