@@ -505,11 +505,8 @@ async function handleReset(interaction) {
 
 // ─── Button ack helper ────────────────────────────────────────────────
 async function ackButton(interaction) {
-  try {
-    await interaction.update({ components: [] });
-  } catch {
-    // 交互已被外部预先应答，静默忽略；游戏流程继续。
-  }
+  // 不发送确认，直接让游戏流程消息自然显示
+  // Discord 会在 3 秒内看到我们有回复，不会显示默认确认
 }
 
 // ─── Button handler ───────────────────────────────────────────────────
