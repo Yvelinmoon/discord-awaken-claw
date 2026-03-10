@@ -1,0 +1,60 @@
+# 敏感信息
+.env
+*.token
+*.secret
+
+# 状态文件
+state.json
+SOUL.md.original
+
+# 临时文件
+.llm-requests/
+.llm-responses/
+assets/*.png
+assets/*.jpg
+assets/*.jpeg
+
+# 日志
+*.log
+logs/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 测试文件
+coverage/
+.nyc_output/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+
+# 其他文档（只保留 README-GITHUB.md 和 SKILL.md）
+DONE.md
+IMPLEMENTATION.md
+INTEGRATION.md
+INTEGRATION-SIMPLE.md
+SIMPLE-IMPLEMENTATION.md
+SKILL-DESIGN.md
+START-HERE.md
+TESTING.md
+USAGE-FIX.md
+USAGE.md
+AVATAR-INTEGRATION.md
+AVATAR-SEARCH-STRATEGY.md
+ENV-FIX-SUMMARY.md
+FINAL-IMPLEMENTATION.md
+PROFILE-UPDATE.md
+QUICKSTART.md
+README-OPENCCLAW.md
+README.md
+test-*.js
