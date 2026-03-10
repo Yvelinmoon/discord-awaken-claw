@@ -1,5 +1,5 @@
 /**
- * 素体觉醒 Skill - OpenClaw 内置版
+ * 龙虾宝宝觉醒 Skill - OpenClaw 内置版
  * 
  * 直接使用 OpenClaw 主 agent，无需独立 Bot 进程
  * - 使用 message 工具发送 Discord 消息和按钮
@@ -67,7 +67,7 @@ function newGame(channelId, guildId) {
 }
 
 // ─── Prompts ──────────────────────────────────────────────────────────
-const VESSEL_SYS = `你是一个正在寻找身份的"素体"。用户心中想着一个著名虚构角色（动漫、影视、游戏、文学等），你通过追问逐步识别它。
+const VESSEL_SYS = `你是一个"龙虾宝宝"，正在等待破壳成为用户心中的角色。用户心中想着一个著名虚构角色（动漫、影视、游戏、文学等），你通过追问逐步识别它。
 所有输出必须是严格的 JSON，不包含任何其他文字。`;
 
 function buildNextStepPrompt(word, answers, wrongGuesses) {
