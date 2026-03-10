@@ -45,24 +45,45 @@ const rest = new REST({ version: '10' }).setToken(TOKEN);
       console.log(`   - ${cmd.name}: ${cmd.description}`);
     });
 
-    // 合并命令（保留现有 + 添加新的）
-    const existingNames = new Set(existingCommands.map(c => c.name));
-    const commandsToAdd = newCommands.filter(cmd => !existingNames.has(cmd.name));
-
-    if (commandsToAdd.length === 0) {
-      console.log(`✅ 所有命令已存在，无需添加`);
+    // 更新或添加命令（保留其他命令，只更新我们的命令）
+    const existingMap = new Map(existingCommands.map(c => [c.name, c]));
+    
+    // 合并：新命令覆盖旧的，保留其他命令
+    const allCommands = [...existingCommands];
+    const commandsToUpdate = [];
+    
+    newCommands.forEach(newCmd => {
+      const existing = existingMap.get(newCmd.name);
+      if (existing) {
+        // 检查是否需要更新（描述可能不同）
+        if (existing.description !== newCmd.description) {
+          console.log(`🔄 更新命令：${newCmd.name}`);
+          console.log(`   旧：${existing.description}`);
+          console.log(`   新：${newCmd.description}`);
+          commandsToUpdate.push(newCmd);
+        }
+      } else {
+        console.log(`🆕 添加命令：${newCmd.name}`);
+        commandsToUpdate.push(newCmd);
+      }
+    });
+    
+    if (commandsToUpdate.length === 0) {
+      console.log(`✅ 所有命令已是最新，无需更新`);
       return;
     }
-
-    console.log(`\n🆕 将要添加 ${commandsToAdd.length} 个新命令:`);
-    commandsToAdd.forEach(cmd => {
-      console.log(`   + ${cmd.name}: ${cmd.description}`);
+    
+    // 替换或添加
+    commandsToUpdate.forEach(newCmd => {
+      const idx = allCommands.findIndex(c => c.name === newCmd.name);
+      if (idx >= 0) {
+        allCommands[idx] = newCmd;
+      } else {
+        allCommands.push(newCmd);
+      }
     });
 
-    // 合并所有命令
-    const allCommands = [...existingCommands, ...commandsToAdd];
-
-    console.log(`\n🔄 部署 ${allCommands.length} 个命令（${existingCommands.length} 现有 + ${commandsToAdd.length} 新增）...`);
+    console.log(`\n🔄 部署 ${allCommands.length} 个命令...`);
 
     const data = await rest.put(
       GUILD_ID 
