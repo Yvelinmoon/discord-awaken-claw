@@ -293,7 +293,7 @@ async function startAwakening(userId, channelId, guildId, sendMessage) {
  */
 async function promptInitialWord(channelId, sendMessage) {
   await sendMessage({
-    message: `🦞 好呀！你心中所想的那个角色——
+    message: `你心中所想的那个角色——
 
 当你想到它，**第一个浮现的词**是什么？
 
@@ -302,7 +302,7 @@ async function promptInitialWord(channelId, sendMessage) {
 • "金发 总统 美国"
 • "黑色长发 巫女"
 
-直接告诉我就好～`,
+直接发送消息就好（最多 20 字）`,
   });
 }
 
@@ -338,14 +338,14 @@ async function processNextStep(userId, sendMessage) {
     
     if (parsed.action === 'guess') {
       await sendMessage({
-        message: '🦞 越来越近了……\n\n我好像猜到是谁了！',
+        message: '越来越近了……\n\n我几乎能感受到那个名字了——',
       });
       await sleep(1000);
       await showReveal(userId, parsed, sendMessage);
     } else {
       const msg = game.answers.length === 0
-        ? '🦞 嗯嗯，我有点感觉了！\n\n让我再问问你～'
-        : '🦞 明白了！\n\n还有一个小问题～';
+        ? '我感受到了某种轮廓……\n\n让我再多了解一些。'
+        : '越来越清晰了……\n\n还有一个问题。';
       
       await sendMessage({ message: msg });
       await showQuestion(userId, parsed, sendMessage);
@@ -397,7 +397,7 @@ async function showReveal(userId, charData, sendMessage) {
   await sleep(1400);
   
   await sendMessage({
-    message: '✨ 我……\n\n我知道自己该变成谁了！',
+    message: '我……\n\n我知道自己是谁了。',
   });
   
   await sleep(900);
@@ -417,12 +417,12 @@ async function showReveal(userId, charData, sendMessage) {
         type: 'actions',
         buttons: [
           {
-            label: '◎ 就是 Ta，请破壳',
+            label: '◎ 就是他/她，请破壳',
             customId: `confirm_yes_${userId}`,
             style: 'success',
           },
           {
-            label: '✗ 不对，再想想',
+            label: '✗ 不对，继续感知',
             customId: `confirm_no_${userId}`,
             style: 'secondary',
           },
@@ -446,11 +446,11 @@ async function awaken(userId, channelId, guildId, sendMessage) {
   game.awakened = true;
   const c = game.charData;
   
-  await sendMessage({ message: '🥚 …………' });
+  await sendMessage({ message: '…………' });
   await sleep(1200);
   
   await sendMessage({
-    message: `🦞 **破壳成功！变成 ${c.character} 啦！**`,
+    message: `**— ${c.character} 已觉醒 —**`,
   });
   await sleep(600);
   
@@ -459,7 +459,7 @@ async function awaken(userId, channelId, guildId, sendMessage) {
   
   // 更新 Discord 昵称和头像
   await sendMessage({
-    message: `🎨 正在换装中……`,
+    message: `正在更新个人资料……`,
   });
   
   try {
@@ -467,24 +467,24 @@ async function awaken(userId, channelId, guildId, sendMessage) {
     
     if (profileResults.nickname) {
       await sendMessage({
-        message: `✅ 昵称改成：**${c.character}**`,
+        message: `✅ 昵称已更改为：**${c.character}**`,
       });
     }
     
     if (profileResults.avatar) {
       await sendMessage({
-        message: `✅ 头像换好啦！`,
+        message: `✅ 头像已更新`,
       });
     }
     
     if (profileResults.errors.length > 0) {
       await sendMessage({
-        message: `⚠ 有点小问题：\n${profileResults.errors.join('\n')}`,
+        message: `⚠ 部分更新失败：\n${profileResults.errors.join('\n')}`,
       });
     }
   } catch (err) {
     await sendMessage({
-      message: `⚠ 换装失败：${err.message}`,
+      message: `⚠ 更新个人资料失败：${err.message}`,
     });
   }
   
