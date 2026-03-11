@@ -105,15 +105,29 @@ async function handleDiscordMessage(context) {
     if (interactionType === 'message') {
       const game = awakening.getGame(userId);
       
-      // 觉醒后的对话
+      // 觉醒命令 - 强制重置并开始新流程（方案 A）
+      if (isAwakeningCommand(content)) {
+        // 清除旧状态，强制重新开始
+        if (game) {
+          const state = require('./awakening-skill.js').loadState();
+          delete state[userId];
+          require('./awakening-skill.js').saveState(state);
+        }
+        await awakening.startAwakening(userId, channelId, guildId, sendMessage);
+        return true;
+      }
+      
+      // 觉醒后的对话 - 支持跨频道（方案 C：自动更新 channelId）
       if (game?.awakened) {
-        const handled = await awakening.handleAwakenedChat(userId, content, sendMessage);
+        const handled = await awakening.handleAwakenedChat(userId, channelId, guildId, content, sendMessage);
         return handled;
       }
       
-      // 觉醒命令 - 直接触发，不检查状态
-      if (isAwakeningCommand(content)) {
-        await awakening.startAwakening(userId, channelId, guildId, sendMessage);
+      // 游戏中的消息（等待用户输入初始词或手动描述）
+      if (game?.started && !game.word) {
+        // 等待初始词 - 用户可能直接输入描述
+        const word = content.trim().slice(0, 20);
+        await awakening.handleInitialWord(userId, word, sendMessage);
         return true;
       }
       

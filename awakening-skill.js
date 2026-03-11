@@ -88,7 +88,7 @@ A) 如果你有 85% 以上的把握（例如用户直接说了角色名、非常
   "action": "guess",
   "character": "角色中文名",
   "from": "《作品名》",
-  "emoji": "单个 emoji",
+  "emoji": "单个 emoji（只能 1 个，不要多个）",
   "color": "#十六进制主题色",
   "desc": "一句话特质（≤20 字）",
   "greet": "角色第一句话（完全 in-character，可用\\n换行）"
@@ -301,6 +301,7 @@ async function promptInitialWord(channelId, sendMessage) {
 • "蓝色头发 剑士 王"
 • "金发 总统 美国"
 • "黑色长发 巫女"
+• 或者直接说名字："阿尔托莉雅"
 
 直接发送消息就好（最多 20 字）`,
   });
@@ -472,9 +473,18 @@ async function awaken(userId, channelId, guildId, sendMessage) {
 /**
  * 觉醒后对话
  */
-async function handleAwakenedChat(userId, message, sendMessage) {
+async function handleAwakenedChat(userId, channelId, guildId, message, sendMessage) {
   const game = getGame(userId);
   if (!game || !game.awakened) return false;
+  
+  // 支持跨频道：自动更新绑定
+  if (game.channelId !== channelId) {
+    game.channelId = channelId;
+  }
+  if (guildId && game.guildId !== guildId) {
+    game.guildId = guildId;
+  }
+  setGame(userId, game);
   
   const c = game.charData;
   
@@ -507,6 +517,15 @@ async function handleButtonInteraction(userId, channelId, guildId, customId, sen
     });
     return;
   }
+  
+  // 支持跨频道：自动更新绑定的 channelId 和 guildId
+  if (game.channelId !== channelId) {
+    game.channelId = channelId;
+  }
+  if (guildId && game.guildId !== guildId) {
+    game.guildId = guildId;
+  }
+  setGame(userId, game);
   
   const [action, ...params] = customId.split('_');
   
