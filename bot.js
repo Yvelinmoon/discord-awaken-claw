@@ -587,6 +587,9 @@ async function handleButton(interaction) {
         ephemeral: true,
       }).catch(() => {});
     }
+    // 立刻标记，防止按钮被重复点击时多次触发
+    game.started = true;
+    setGame(userId, game);
     await ackButton(interaction);
 
     const promptMsg = await interaction.channel.send({
@@ -613,9 +616,14 @@ async function handleButton(interaction) {
   }
 
   if (action === 'manual') {
+    // 防止重复点击：清空当前问题选项，后续按钮点击无效
+    if (!game.currentQuestion) return;
+    const savedQuestion = game.currentQuestion;
+    game.currentQuestion = null;
+    setGame(userId, game);
     await ackButton(interaction);
 
-    const question  = game.currentQuestion || '请描述这个角色';
+    const question  = savedQuestion;
     const promptMsg = await interaction.channel.send({
       embeds: [makeEmbed(`${question}\n\n请用自己的话描述：`, 0x5865f2)],
     });
