@@ -577,6 +577,7 @@ module.exports = {
   handleInitialWord,
   handleButtonInteraction,
   handleAwakenedChat,
+  processNextStep,
   resetSoulMD,
   updateSoulMD,
   getGame,

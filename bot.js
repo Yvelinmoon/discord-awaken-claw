@@ -11,10 +11,16 @@ const {
   EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle,
   ModalBuilder, TextInputBuilder, TextInputStyle,
 } = require('discord.js');
+const { HttpsProxyAgent } = require('https-proxy-agent');
+const { ProxyAgent } = require('undici');
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
+const http  = require('http');
 const ocAdapter = require('./openclaw-adapter');
+
+const _undiciProxy = process.env.HTTPS_PROXY ? new ProxyAgent(process.env.HTTPS_PROXY) : undefined;
+const _wsProxy    = process.env.HTTPS_PROXY ? new HttpsProxyAgent(process.env.HTTPS_PROXY) : undefined;
 
 // ─── Config ───────────────────────────────────────────────────────────
 const TOKEN = process.env.DISCORD_TOKEN;
@@ -137,12 +143,15 @@ async function charRespond(char, history) {
 用该角色真实的口吻、性格、语言习惯回应用户。
 回复简洁（1-3 句），完全保持角色个性，不要打破第四面墙，不要提到自己是 AI。`;
 
-  const messages = history.map(h => ({ role: h.role, content: h.content }));
-  return await callOpenClaw(
-    messages[messages.length - 1].content,
-    systemPrompt,
-    300
-  );
+  // 把完整历史拼成上下文，最多保留最近 10 轮避免超 token
+  const window = history.slice(-20);
+  const context = window.slice(0, -1)
+    .map(h => `${h.role === 'user' ? '用户' : '角色'}：${h.content}`)
+    .join('\n');
+  const lastMsg = window[window.length - 1].content;
+  const fullPrompt = context ? `${context}\n用户：${lastMsg}` : lastMsg;
+
+  return await callOpenClaw(fullPrompt, systemPrompt, 300);
 }
 
 function parseJSON(raw) {
@@ -361,14 +370,24 @@ async function awaken(channel, game, userId) {
   setGame(userId, game);
 }
 
-async function downloadImage(url) {
+async function downloadImage(url, redirects = 0) {
+  if (redirects > 5) throw new Error('图片下载重定向次数过多');
   return new Promise((resolve, reject) => {
-    https.get(url, res => {
+    const lib = url.startsWith('https') ? https : http;
+    lib.get(url, res => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        resolve(downloadImage(res.headers.location, redirects + 1));
+        return;
+      }
+      if (res.statusCode !== 200) {
+        reject(new Error(`图片下载失败：HTTP ${res.statusCode}`));
+        return;
+      }
       const chunks = [];
       res.on('data', chunk => chunks.push(chunk));
       res.on('end', () => resolve(Buffer.concat(chunks)));
       res.on('error', reject);
-    });
+    }).on('error', reject);
   });
 }
 
@@ -381,11 +400,24 @@ const client = new Client({
     GatewayIntentBits.GuildMembers,
   ],
   partials: [Partials.Channel],
+  rest: _undiciProxy ? { agent: _undiciProxy } : undefined,
+  ws:   _wsProxy    ? { agent: _wsProxy }    : undefined,
 });
 
-client.once(Events.ClientReady, c => {
+client.once(Events.ClientReady, async c => {
   console.log(`✦ 龙虾宝宝已上线 → ${c.user.tag}`);
   console.log(`  邀请链接：https://discord.com/oauth2/authorize?client_id=${c.user.id}&permissions=277025392640&scope=bot%20applications.commands`);
+
+  // 注册 slash 命令（全局，~1小时生效；改为 guild 命令可即时生效）
+  try {
+    await c.application.commands.set([
+      { name: 'awakening', description: '开始角色觉醒流程' },
+      { name: 'reset',     description: '重置觉醒状态，重新来过' },
+    ]);
+    console.log('✦ Slash 命令已注册');
+  } catch (err) {
+    console.error('Slash 命令注册失败:', err.message);
+  }
 });
 
 // ─── Post-awakening chat ──────────────────────────────────────────────
@@ -517,11 +549,21 @@ async function ackButton(interaction) {
 // ─── Button handler ───────────────────────────────────────────────────
 async function handleButton(interaction) {
   const customId = interaction.customId;
-  
-  // 从 customId 中提取 userId (格式：action_userId)
-  const parts = customId.split('_');
-  const userId = parts[parts.length - 1];
-  const action = parts.slice(0, parts.length - 1).join('_');
+
+  // ─── 解析 customId ──────────────────────────────────────────────────
+  // answer 按钮格式特殊：answer_userId_idx（三段）
+  // 其余格式：action_userId 或 action_action_userId（最后一段是 userId）
+  let action, userId, answerIdx;
+  if (customId.startsWith('answer_')) {
+    const parts = customId.split('_');
+    action    = 'answer';
+    userId    = parts[1];
+    answerIdx = parseInt(parts[2]);
+  } else {
+    const parts = customId.split('_');
+    userId = parts[parts.length - 1];
+    action = parts.slice(0, parts.length - 1).join('_');
+  }
   
   const game   = getGame(userId);
 
@@ -601,9 +643,8 @@ async function handleButton(interaction) {
       await interaction.channel.send({ embeds: [makeEmbed('此问题已过期', 0x4e5058)] });
       return;
     }
-    const idx    = parseInt(parts[parts.length - 1]);
-    const answer = game.currentOptions?.[idx];
-    if (!answer) return;
+    const answer = game.currentOptions?.[answerIdx];
+    if (answer === undefined) return;
 
     await interaction.channel.send({ embeds: [userEmbed(interaction.member, answer)] });
     game.answers.push({ q: game.currentQuestion, a: answer });

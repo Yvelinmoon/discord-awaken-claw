@@ -130,14 +130,7 @@ async function handleDiscordMessage(context) {
         await awakening.handleInitialWord(userId, word, sendMessage);
         return true;
       }
-      
-      // 游戏中的消息（等待用户输入初始词或手动描述）
-      if (game?.started && !game.word) {
-        // 等待初始词
-        await awakening.handleInitialWord(userId, content.trim().slice(0, 20), sendMessage);
-        return true;
-      }
-      
+
       if (game?.currentQuestion && !game.currentOptions?.includes(content)) {
         // 用户手动输入描述
         const manualAnswer = content.trim().slice(0, 200);
