@@ -209,6 +209,7 @@ function newGame(channelId) {
     chatHistory:     [],
     channelId,
     started:         false,
+    waitingFor:      null, // 'word' | 'manual' | null
   };
 }
 
@@ -420,18 +421,47 @@ client.once(Events.ClientReady, async c => {
   }
 });
 
-// ─── Post-awakening chat ──────────────────────────────────────────────
+// ─── Message handler（仅响应 @bot mention）────────────────────────────
 client.on(Events.MessageCreate, async message => {
   if (message.author.bot) return;
+  if (!message.mentions.has(client.user)) return; // 只处理 @bot 消息
+
+  // 去掉 mention 前缀，拿到干净的文本
+  const content = message.content.replace(/<@!?\d+>/g, '').trim();
   const game = getGame(message.author.id);
-  if (!game?.awakened || message.channelId !== game.channelId) return;
+
+  // ─ 觉醒流程：等待初始关键词 ─────────────────────────────────────────
+  if (game?.waitingFor === 'word') {
+    game.waitingFor = null;
+    const word = content.slice(0, 20);
+    game.word    = word;
+    setGame(message.author.id, game);
+    await message.channel.send({ embeds: [userEmbed(message.member || message.author, word)] });
+    await processStep(message.channel, game, message.author.id);
+    return;
+  }
+
+  // ─ 觉醒流程：等待手动描述 ─────────────────────────────────────────
+  if (game?.waitingFor === 'manual') {
+    game.waitingFor = null;
+    const val = content.slice(0, 200);
+    const savedQ = game.currentQuestion || '补充描述';
+    game.answers.push({ q: savedQ, a: val });
+    setGame(message.author.id, game);
+    await message.channel.send({ embeds: [userEmbed(message.member || message.author, val)] });
+    await processStep(message.channel, game, message.author.id);
+    return;
+  }
+
+  // ─ 觉醒后角色对话 ────────────────────────────────────────────────
+  if (!game?.awakened) return;
 
   const c     = game.charData;
   const color = hexToInt(c.color);
 
   try {
     await message.channel.sendTyping();
-    game.chatHistory.push({ role: 'user', content: message.content });
+    game.chatHistory.push({ role: 'user', content });
     const reply = await charRespond(c, [...game.chatHistory]);
     game.chatHistory.push({ role: 'assistant', content: reply });
 
@@ -443,7 +473,7 @@ client.on(Events.MessageCreate, async message => {
           .setDescription(reply),
       ],
     });
-    
+
     setGame(message.author.id, game);
   } catch (err) {
     console.error('对话错误:', err.message);
@@ -588,28 +618,16 @@ async function handleButton(interaction) {
       }).catch(() => {});
     }
     // 立刻标记，防止按钮被重复点击时多次触发
-    game.started = true;
+    game.started    = true;
+    game.waitingFor = 'word';
     setGame(userId, game);
     await ackButton(interaction);
 
-    const promptMsg = await interaction.channel.send({
+    await interaction.channel.send({
       embeds: [makeEmbed(
-        '你心中所想的那个角色——\n\n当你想到它，**第一个浮现的词**是什么？\n请直接发送消息（最多 20 字）',
+        '你心中所想的那个角色——\n\n当你想到它，**第一个浮现的词**是什么？\n\n@我 并发送（最多 20 字）',
         0x5865f2,
       )],
-    });
-
-    interaction.channel.createMessageCollector({
-      filter: m => m.author.id === userId,
-      max: 1,
-    }).on('collect', async m => {
-      const word = m.content.trim().slice(0, 20);
-      await m.delete().catch(() => {});
-      await promptMsg.delete().catch(() => {});
-      game.word    = word;
-      game.started = true;
-      await interaction.channel.send({ embeds: [userEmbed(m.member || m.author, word)] });
-      await processStep(interaction.channel, game, userId);
     });
 
     return;
@@ -620,24 +638,12 @@ async function handleButton(interaction) {
     if (!game.currentQuestion) return;
     const savedQuestion = game.currentQuestion;
     game.currentQuestion = null;
+    game.waitingFor      = 'manual';
     setGame(userId, game);
     await ackButton(interaction);
 
-    const question  = savedQuestion;
-    const promptMsg = await interaction.channel.send({
-      embeds: [makeEmbed(`${question}\n\n请用自己的话描述：`, 0x5865f2)],
-    });
-
-    interaction.channel.createMessageCollector({
-      filter: m => m.author.id === userId,
-      max: 1,
-    }).on('collect', async m => {
-      const val = m.content.trim().slice(0, 200);
-      await m.delete().catch(() => {});
-      await promptMsg.delete().catch(() => {});
-      await interaction.channel.send({ embeds: [userEmbed(m.member || m.author, val)] });
-      game.answers.push({ q: game.currentQuestion || '补充描述', a: val });
-      await processStep(interaction.channel, game, userId);
+    await interaction.channel.send({
+      embeds: [makeEmbed(`${savedQuestion}\n\n@我 并用自己的话描述：`, 0x5865f2)],
     });
 
     return;
